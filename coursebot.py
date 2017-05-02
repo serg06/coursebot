@@ -41,12 +41,12 @@ def isServiced(item_id):
 
 # Replaces course names in descriptions with links to course pages
 def replaceNameWithLink(matchobj):
-    course_name = matchobj.group(0)
-    return '[' + course_name + ']' + '(http://calendar.artsci.utoronto.ca/crs_' + course_name[:3].lower() + '.htm#' + course_name + ')'
+    course_code = matchobj.group(0)
+    return '[' + course_code + ']' + '(http://calendar.artsci.utoronto.ca/crs_' + course_code[:3].lower() + '.htm#' + course_code + ')'
 
 # Returns the course description to be used in the bot reply
-def getCourseInfo(course_name):
-    url = 'http://calendar.artsci.utoronto.ca/crs_' + course_name[:3] + '.htm'
+def getCourseInfo(course_code):
+    url = 'http://calendar.artsci.utoronto.ca/crs_' + course_code[:3] + '.htm'
     try:
         request = requests.get(url)
     except:
@@ -55,10 +55,12 @@ def getCourseInfo(course_name):
     soup = BeautifulSoup(html_content, 'lxml')
     for item in soup.find_all('a'):
         try:
-            if item['name'][:6] == course_name.upper():
+            if item['name'][:6] == course_code.upper():
+                name = item.find_next_sibling('span').text.strip()
+                name = ' '.join(name.split()[1:]).split('[')[0]
                 info = item.find_next_sibling('p').text
                 info = re.sub(COURSE_INFO_REGEX, replaceNameWithLink, info)
-                return info
+                return name + ':\n\n' + info
         except KeyError:
             pass
     return ''
@@ -74,16 +76,17 @@ def checkItem(item):
     except AttributeError:
         course_mentioned = re.findall(COURSE_NAME_REGEX, item.body)
     if len(course_mentioned) == 1 and not isServiced(item.id) and not item.author.name == "CourseBot" and not skip:
-        course_name = course_mentioned[0][1:]
-        reply = getCourseInfo(course_name.lower())
+        course_code = course_mentioned[0][1:]
+        reply = getCourseInfo(course_code.lower())
         if reply:
             reply = reply + '\n\n'
-            pre = '###' + course_name.upper() + ':\n\n'
+            pre = '###' + course_code.upper() + ' - '
             post = '[Source Code](https://github.com/zuhayrx/coursebot)'
             reply = pre + reply + post
             try:
                 item.reply(reply)
-            except:
+            except Exception as e:
+                print(e)
                 sleep(5)
                 return
             print(reply)
