@@ -87,11 +87,11 @@ def checkItem(item):
                 item.reply(reply)
             except Exception as e:
                 print(e)
-                sleep(5)
+                sleep(1)
                 return
             print(reply)
         updateServiced(item.id)
-        sleep(5)
+        sleep(1)
 
 # Start scanning subreddits and comments for matches and act accordingly
 def run(r):
@@ -106,7 +106,10 @@ def run(r):
 # Log in once
 r = login()
 
-# Every 5 minutes, scan subreddits and comments for matches and act accordingly
+# Every minute, scan subreddits and comments for matches and act accordingly
 while True:
-    run(r)
-    sleep(300)
+    try:
+        run(r)
+    except:
+        pass
+    sleep(60)
